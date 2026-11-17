@@ -33,4 +33,6 @@ Requiere Python 3.10 o superior. Se genera el archivo `software_fj.log`.
 
 ## Integrantes
 
-Anotar aquí los cinco integrantes del grupo y su aporte (commits en GitHub).
+Sergio Esteban Carrillo Farfan
+David Correa
+Javier Olave
