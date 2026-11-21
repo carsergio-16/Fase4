@@ -10,22 +10,22 @@ from registro import log
 from servicios import Servicio
 
 
+# Reserva de un servicio por parte de un cliente.
 class Reserva(EntidadBase):
-    """Reserva de un servicio por parte de un cliente."""
 
     PENDIENTE = "PENDIENTE"
     CONFIRMADA = "CONFIRMADA"
     CANCELADA = "CANCELADA"
 
     def __init__(self, cliente: Cliente, servicio: Servicio, horas: float) -> None:
-        super().__init__()
-        # Validaciones de tipo: evitan reservas con objetos incorrectos
+        super().__init__(prefijo="RES")
         if not isinstance(cliente, Cliente):
             raise ReservaError("La reserva requiere un cliente válido.")
         if not isinstance(servicio, Servicio):
             raise ReservaError("La reserva requiere un servicio válido.")
-        servicio.verificar_disponibilidad()  # lanza ServicioNoDisponibleError
-        servicio.validar_parametros(horas)  # lanza ServicioInvalidoError
+
+        servicio.verificar_disponibilidad()
+        servicio.validar_parametros(horas)
 
         self._cliente = cliente
         self._servicio = servicio
@@ -45,28 +45,24 @@ class Reserva(EntidadBase):
         return self._servicio
 
     def confirmar(self) -> None:
-        """Pasa la reserva de PENDIENTE a CONFIRMADA."""
+        # Pasa la reserva de PENDIENTE a CONFIRMADA.
         if self._estado != Reserva.PENDIENTE:
             raise OperacionNoPermitidaError(
                 f"No se puede confirmar una reserva en estado {self._estado}."
             )
         self._servicio.verificar_disponibilidad()
         self._estado = Reserva.CONFIRMADA
-        log.info("Reserva #%s confirmada.", self.id)
+        log.info("Reserva %s confirmada.", self.id)
 
     def cancelar(self) -> None:
-        """Cancela la reserva si aún no estaba cancelada."""
+        # Cancela la reserva si aún no estaba cancelada.
         if self._estado == Reserva.CANCELADA:
             raise OperacionNoPermitidaError("La reserva ya estaba cancelada.")
         self._estado = Reserva.CANCELADA
-        log.info("Reserva #%s cancelada.", self.id)
+        log.info("Reserva %s cancelada.", self.id)
 
     def procesar(self, con_iva: bool = True, descuento: float = 0.0) -> float | None:
-        """Confirma la reserva y devuelve el costo total.
-
-        Usa try/except/else/finally y encadena la excepción original para no
-        perder la causa del fallo. Devuelve None si el proceso falla.
-        """
+        # Confirma la reserva, calcula el costo total y usa try/except/else/finally + encadenamiento.
         try:
             self.confirmar()
             total = self._servicio.calcular_costo(
@@ -74,18 +70,18 @@ class Reserva(EntidadBase):
             )
         except SoftwareFJError as error:
             try:
-                raise ReservaError(f"No se pudo procesar la reserva #{self.id}.") from error
+                raise ReservaError(f"No se pudo procesar la reserva {self.id}.") from error
             except ReservaError as envuelto:
                 log.error("%s Causa: %s", envuelto, error)
             return None
         else:
-            log.info("Reserva #%s procesada. Total: $%s", self.id, f"{total:,.2f}")
+            log.info("Reserva %s procesada. Total: $%s", self.id, f"{total:,.2f}")
             return total
         finally:
-            log.info("Fin del procesamiento de la reserva #%s.", self.id)
+            log.info("Fin del procesamiento de la reserva %s.", self.id)
 
     def describir(self) -> str:
         return (
-            f"Reserva #{self.id} | {self._cliente.nombre} | "
+            f"Reserva [{self.id}] | {self._cliente.nombre} | "
             f"{self._servicio.nombre} | {self._horas} h | {self._estado}"
         )
