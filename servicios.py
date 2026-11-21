@@ -2,15 +2,10 @@
 
 from abc import abstractmethod
 from entidades import EntidadBase
-from excepciones import (
-    CalculoInconsistenteError,
-    ServicioInvalidoError,
-    ServicioNoDisponibleError,
-)
+from excepciones import (CalculoInconsistenteError, ServicioInvalidoError, ServicioNoDisponibleError,)
 from registro import log
 
 IVA_POR_DEFECTO: float = 0.19
-
 
 # Clase abstracta base para todos los servicios de Software FJ.
 class Servicio(EntidadBase):
@@ -59,9 +54,7 @@ class Servicio(EntidadBase):
 
     def verificar_disponibilidad(self) -> None:
         if not self._disponible:
-            raise ServicioNoDisponibleError(
-                f"El servicio '{self._nombre}' ({self.id}) no está disponible."
-            )
+            raise ServicioNoDisponibleError(f"El servicio '{self._nombre}' ({self.id}) no está disponible.")
 
     @abstractmethod
     def validar_parametros(self, horas: float, **kwargs) -> None:
@@ -127,19 +120,14 @@ class ReservaSala(Servicio):
             raise ServicioInvalidoError("Una reserva de sala no puede superar las 24 horas seguidas.")
         asistentes = kwargs.get("asistentes")
         if asistentes is not None and (asistentes <= 0 or asistentes > self.capacidad):
-            raise ServicioInvalidoError(
-                f"Asistentes ({asistentes}) fuera de capacidad ({self.capacidad})."
-            )
+            raise ServicioInvalidoError(f"Asistentes ({asistentes}) fuera de capacidad ({self.capacidad}).")
 
     def _subtotal_por_horas(self, horas: float) -> float:
         return self._costo_base * float(horas)
 
     def describir(self) -> str:
         estado = "Disponible" if self._disponible else "No disponible"
-        return (
-            f"Sala [{self.id}] {self._nombre} | Cap: {self.capacidad} | "
-            f"Tarifa: ${self._costo_base:,.2f}/h | {estado}"
-        )
+        return (f"Sala [{self.id}] {self._nombre} | Cap: {self.capacidad} | "f"Tarifa: ${self._costo_base:,.2f}/h | {estado}")
 
 
 # Servicio 2: Alquiler de equipos.
@@ -163,20 +151,14 @@ class AlquilerEquipo(Servicio):
     def validar_parametros(self, horas: float, **kwargs) -> None:
         self._validar_horas_positivas(horas)
         if horas > self.MAX_HORAS:
-            raise ServicioInvalidoError(
-                f"El alquiler de '{self._nombre}' permite máximo {self.MAX_HORAS:.0f} horas (solicitadas: {horas})."
-            )
+            raise ServicioInvalidoError(f"El alquiler de '{self._nombre}' permite máximo {self.MAX_HORAS:.0f} horas (solicitadas: {horas}).")
 
     def _subtotal_por_horas(self, horas: float) -> float:
         return self._costo_base * float(horas)
 
     def describir(self) -> str:
         estado = "Disponible" if self._disponible else "No disponible"
-        return (
-            f"Equipo [{self.id}] {self._nombre} ({self.categoria}) | "
-            f"Tarifa: ${self._costo_base:,.2f}/h | {estado}"
-        )
-
+        return (f"Equipo [{self.id}] {self._nombre} ({self.categoria}) | "f"Tarifa: ${self._costo_base:,.2f}/h | {estado}")
 
 # Servicio 3: Asesorías especializadas.
 class Asesoria(Servicio):
@@ -198,11 +180,7 @@ class Asesoria(Servicio):
 
     def describir(self) -> str:
         estado = "Disponible" if self._disponible else "No disponible"
-        return (
-            f"Asesoría [{self.id}] {self._nombre} ({self.nivel}) | "
-            f"Tarifa: ${self._costo_base:,.2f}/h | {estado}"
-        )
-
+        return (f"Asesoría [{self.id}] {self._nombre} ({self.nivel}) | "f"Tarifa: ${self._costo_base:,.2f}/h | {estado}")
 
 # Alias por compatibilidad si algún módulo importa AsesoriaEspecializada.
 AsesoriaEspecializada = Asesoria
