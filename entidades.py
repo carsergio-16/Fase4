@@ -1,66 +1,85 @@
-"""Módulo de Entidades del Sistema Software FJ.
-Contiene la clase abstracta EntidadBase y la clase Cliente con validaciones
-robustas, encapsulación y registro en el sistema de logs.
-"""
+"""Módulo de Entidades del Sistema Software FJ."""
 
 from abc import ABC, abstractmethod
 from excepciones import ClienteInvalidoError, ParametroFaltanteError
 from registro import log
 
 
-# Clase abstracta que representa entidades generales del sistema Software FJ.
+# Clase abstracta base para entidades del dominio con ID autogenerado.
 class EntidadBase(ABC):
+    _secuencia: int = 0
 
-    def __init__(self, identificador: str):
-        if not identificador or not isinstance(identificador, str) or not identificador.strip():
-            log.error("Intento de instanciar EntidadBase con identificador vacío o inválido.")
-            raise ParametroFaltanteError("El identificador de la entidad es obligatorio y no puede estar vacío.")
-        self._identificador = identificador.strip()
+    def __init__(self, prefijo: str = "ENT") -> None:
+        EntidadBase._secuencia += 1
+        self._id: str = f"{prefijo}-{EntidadBase._secuencia:04d}"
 
     @property
-    def identificador(self) -> str:
-        # Devuelve el identificador único de la entidad.
-        return self._identificador
+    def id(self) -> str:
+        # Identificador único de la entidad.
+        return self._id
 
     @abstractmethod
-    def obtener_detalles(self) -> str:
-        # Método abstracto para retornar los detalles específicos de la entidad.
+    def describir(self) -> str:
+        # Representación legible de la entidad.
         pass
 
+    def __str__(self) -> str:
+        return self.describir()
 
-# Clase Cliente que hereda de EntidadBase, aplicando encapsulación y validaciones estrictas.
+
+# Clase Cliente con encapsulación y validaciones estrictas.
 class Cliente(EntidadBase):
 
-    def __init__(self, identificador: str, nombre: str, correo: str, telefono: str):
-        super().__init__(identificador)
+    def __init__(
+        self,
+        nombre: str,
+        documento: str = "",
+        correo: str = "",
+        telefono: str = "",
+    ) -> None:
+        super().__init__(prefijo="CLI")
         self.nombre = nombre
+        self.documento = documento
         self.correo = correo
         self.telefono = telefono
-        log.info(f"Cliente registrado exitosamente: ID={self._identificador}, Nombre={self._nombre}")
+        log.info("Cliente registrado: %s (%s)", self._nombre, self._id)
 
     @property
     def nombre(self) -> str:
         return self._nombre
 
     @nombre.setter
-    def nombre(self, valor: str):
-        if not valor or not isinstance(valor, str) or len(valor.strip()) < 3:
-            log.warning(f"Validación fallida de nombre de cliente: '{valor}'")
+    def nombre(self, valor: str) -> None:
+        if not isinstance(valor, str) or len(valor.strip()) < 3:
+            log.warning("Nombre de cliente inválido: %r", valor)
             raise ClienteInvalidoError(
-                f"Nombre de cliente inválido: '{valor}'. Debe ser un texto de al menos 3 caracteres."
+                "El nombre del cliente debe tener al menos 3 caracteres."
             )
         self._nombre = valor.strip()
+
+    @property
+    def documento(self) -> str:
+        return self._documento
+
+    @documento.setter
+    def documento(self, valor: str) -> None:
+        if not isinstance(valor, str) or not valor.strip().isdigit() or len(valor.strip()) < 6:
+            log.warning("Documento de cliente inválido: %r", valor)
+            raise ClienteInvalidoError(
+                "El documento debe contener al menos 6 dígitos numéricos."
+            )
+        self._documento = valor.strip()
 
     @property
     def correo(self) -> str:
         return self._correo
 
     @correo.setter
-    def correo(self, valor: str):
-        if not valor or not isinstance(valor, str) or "@" not in valor or "." not in valor:
-            log.warning(f"Validación fallida de correo de cliente: '{valor}'")
+    def correo(self, valor: str) -> None:
+        if not isinstance(valor, str) or "@" not in valor or "." not in valor.split("@")[-1]:
+            log.warning("Correo de cliente inválido: %r", valor)
             raise ClienteInvalidoError(
-                f"Correo electrónico inválido: '{valor}'. Debe contener '@' y un dominio válido."
+                "El correo electrónico no tiene un formato válido."
             )
         self._correo = valor.strip()
 
@@ -69,19 +88,31 @@ class Cliente(EntidadBase):
         return self._telefono
 
     @telefono.setter
-    def telefono(self, valor: str):
-        if not valor or not isinstance(valor, str) or not valor.isdigit() or len(valor) < 7:
-            log.warning(f"Validación fallida de teléfono de cliente: '{valor}'")
+    def telefono(self, valor: str) -> None:
+        if not isinstance(valor, str) or not valor.strip().isdigit() or len(valor.strip()) < 7:
+            log.warning("Teléfono de cliente inválido: %r", valor)
             raise ClienteInvalidoError(
-                f"Teléfono inválido: '{valor}'. Debe contener únicamente dígitos y al menos 7 caracteres."
+                "El teléfono debe contener al menos 7 dígitos numéricos."
             )
         self._telefono = valor.strip()
 
-    def obtener_detalles(self) -> str:
-        # Retorna una representación detallada del cliente.
+    @classmethod
+    def crear_seguro(cls, *datos) -> "Cliente | None":
+        # Valida parámetros mínimos y crea el cliente registrando errores sin caer.
+        if len(datos) < 4:
+            log.error("Faltan parámetros para crear cliente. Recibidos: %s", len(datos))
+            raise ParametroFaltanteError(
+                "Se requieren nombre, documento, correo y teléfono para registrar un cliente."
+            )
+        try:
+            nombre, documento, correo, telefono = datos[:4]
+            return cls(nombre=nombre, documento=documento, correo=correo, telefono=telefono)
+        except ClienteInvalidoError as error:
+            log.error("Error al crear cliente de forma segura: %s", error)
+            return None
+
+    def describir(self) -> str:
         return (
-            f"Cliente [ID: {self.identificador}] - "
-            f"Nombre: {self.nombre} | "
-            f"Correo: {self.correo} | "
-            f"Teléfono: {self.telefono}"
+            f"Cliente [{self.id}] {self._nombre} | Doc: {self._documento} | "
+            f"Correo: {self._correo} | Tel: {self._telefono}"
         )
