@@ -104,7 +104,7 @@ def main() -> None:
     variantes = (
         equipo.calcular_costo(30),
         equipo.calcular_costo(30, con_iva=True),
-        equipo.calcular_costo(30, 0.1),
+        equipo.calcular_costo(30, descuento=0.1),
         equipo.calcular_costo(30, con_iva=True, descuento=0.1),
     )
     log.info("Variantes de costo (equipo, 30 h): %s", variantes)
